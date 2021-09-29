@@ -1,4 +1,4 @@
-# WebGL website compression on AWS using Amazon S3, AWS Lambda and Amazon CloudFront
+# Serving compressed WebGL websites using Amazon CloudFront, Amazon S3 and AWS Lambda
 
 
 
