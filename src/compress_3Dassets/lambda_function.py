@@ -42,7 +42,7 @@ def lambda_handler(event, context):
     # Upload compressed file with new location in bucket and add content encoding tag
     else:
         s3_client.upload_file(
-            tmpgzip.name, bucket, newKey.stem, ExtraArgs={"ContentEncoding": "gzip"}
+            tmpgzip.name, bucket, str(newKey), ExtraArgs={"ContentEncoding": "gzip"}
         )
 
     # Cleanp temp storage and delete original uncompressed file from S3
