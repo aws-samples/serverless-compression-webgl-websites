@@ -1,0 +1,168 @@
+#  Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#  SPDX-License-Identifier: MIT-0
+#
+#  Permission is hereby granted, free of charge, to any person obtaining a copy of this
+#  software and associated documentation files (the "Software"), to deal in the Software
+#  without restriction, including without limitation the rights to use, copy, modify,
+#  merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+#  permit persons to whom the Software is furnished to do so.
+#
+#  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+#  INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+#  PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+#  HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+#  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+#  SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: A stack to demonstrate WebGL asset compression when serving websites to end users.
+  **WARNING** This template creates Creates an AWS Lambda function, an S3 bucket and an Amazon CloudFront
+  Distribution. You will be billed for the AWS resources used if you create a stack from this template.
+Parameters:
+  S3BucketName:
+    Type: String
+    Description: The name for the S3 bucket - must be unique across all of AWS (3-63 lowercase letters or numbers)
+    Default: replaceme
+    AllowedPattern: '^[a-z0-9]{5,40}$'
+    ConstraintDescription: 3-63 characters; must contain only lowercase letters or numbers
+Mappings:
+  Constants:
+    ManagedPolicyIds:
+      CachingOptimized: 658327ea-f89d-4fab-a63d-7e88639e58f6
+      CachingDisabled: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+Resources:
+  Compress3Dassets:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.7
+      CodeUri: compress_3Dassets/
+      Description: 'A function to gzip the 3D assets and upload to website path'
+      MemorySize: 512
+      Timeout: 60
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - 's3:GetObject'
+                - 's3:PutObject'
+                - 's3:DeleteObject'
+              Resource: !Sub 'arn:aws:s3:::${S3BucketName}/*'
+      Events:
+        BucketEvent1:
+          Type: S3
+          Properties:
+            Bucket:
+              Ref: S3Bucket
+            Events: s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: uncompressed/
+                  - Name: suffix
+                    Value: .glb
+        BucketEvent2:
+          Type: S3
+          Properties:
+            Bucket:
+              Ref: S3Bucket
+            Events:
+              - 's3:ObjectCreated:*'
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: uncompressed/
+                  - Name: suffix
+                    Value: .gltf
+        BucketEvent3:
+          Type: S3
+          Properties:
+            Bucket:
+              Ref: S3Bucket
+            Events:
+              - 's3:ObjectCreated:*'
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: uncompressed/
+                  - Name: suffix
+                    Value: .babylon
+  LambdaInvokePermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      FunctionName: !GetAtt Compress3Dassets.Arn
+      Action: 'lambda:InvokeFunction'
+      Principal: 's3.amazonaws.com'
+      SourceAccount: !Sub ${AWS::AccountId}
+      SourceArn: !GetAtt S3Bucket.Arn
+  S3Bucket:
+    DeletionPolicy: 'Delete'
+    Metadata:
+      Comment: 'Bucket to store your website'
+    Properties:
+      AccessControl: 'Private'
+      BucketName: !Ref S3BucketName
+    Type: 'AWS::S3::Bucket'
+  S3BucketPolicy:
+    Metadata:
+      Comment: 'Bucket policy to allow cloudfront to access the data'
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 's3:GetObject'
+            Effect: 'Allow'
+            Principal:
+              CanonicalUser: !GetAtt CfOriginAccessIdentity.S3CanonicalUserId
+            Resource:
+              - !Sub 'arn:aws:s3:::${S3Bucket}/*'
+    Type: 'AWS::S3::BucketPolicy'
+
+  CfDistribution:
+    Metadata:
+      Comment: 'A CloudFront distribution with REST S3 origin'
+    Properties:
+      DistributionConfig:
+        Comment: 'A simple distribution with an S3 origin'
+        DefaultCacheBehavior:
+          TargetOriginId: !Sub 's3-origin-${S3Bucket}'
+          ViewerProtocolPolicy: 'redirect-to-https'
+          AllowedMethods: [GET, HEAD]
+          CachedMethods: [GET, HEAD]
+          Compress: True
+          CachePolicyId: !FindInMap [Constants, ManagedPolicyIds, CachingOptimized]
+        DefaultRootObject: 'index.html'
+        Enabled: true
+        IPV6Enabled: false
+        Origins:
+          - DomainName: !GetAtt S3Bucket.RegionalDomainName
+            Id: !Sub 's3-origin-${S3Bucket}'
+            OriginPath: ''
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CfOriginAccessIdentity}'
+        PriceClass: 'PriceClass_All'
+    Type: 'AWS::CloudFront::Distribution'
+  CfOriginAccessIdentity:
+    Metadata:
+      Comment: 'Access S3 bucket content only through CloudFront'
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: 'Access S3 bucket content only through CloudFront'
+    Type: 'AWS::CloudFront::CloudFrontOriginAccessIdentity'
+
+Outputs:
+  S3BucketName:
+    Description: 'Bucket name'
+    Value: !Ref S3Bucket
+  CfDistributionId:
+    Description: 'Id for our cloudfront distribution'
+    Value: !Ref CfDistribution
+  CfDistributionDomainName:
+    Description: 'Domain name for our cloudfront distribution'
+    Value: !GetAtt CfDistribution.DomainName
