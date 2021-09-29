@@ -39,7 +39,7 @@ def lambda_handler(event, context):
         print("error compressing file")
         raise
 
-    # Upload compressed file with new location in bucket and add contentencoding tag
+    # Upload compressed file with new location in bucket and add content encoding tag
     else:
         s3_client.upload_file(
             tmpgzip.name, bucket, newKey.stem, ExtraArgs={"ContentEncoding": "gzip"}
