@@ -9,7 +9,7 @@ s3_client = boto3.client("s3")
 
 def lambda_handler(event, context):
 
-    # Get the object from the event and show its content type
+    # Get the object from the event
     bucket = event["Records"][0]["s3"]["bucket"]["name"]
     key = event["Records"][0]["s3"]["object"]["key"]
 
