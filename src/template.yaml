@@ -61,7 +61,7 @@ Resources:
               S3Key:
                 Rules:
                   - Name: prefix
-                    Value: uncompressed/
+                    Value: model/uncompressed/
                   - Name: suffix
                     Value: .glb
         BucketEvent2:
@@ -75,7 +75,7 @@ Resources:
               S3Key:
                 Rules:
                   - Name: prefix
-                    Value: uncompressed/
+                    Value: model/uncompressed/
                   - Name: suffix
                     Value: .gltf
         BucketEvent3:
@@ -89,7 +89,21 @@ Resources:
               S3Key:
                 Rules:
                   - Name: prefix
-                    Value: uncompressed/
+                    Value: model/uncompressed/
+                  - Name: suffix
+                    Value: .bin        
+        BucketEvent4:
+          Type: S3
+          Properties:
+            Bucket:
+              Ref: S3Bucket
+            Events:
+              - 's3:ObjectCreated:*'
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: model/uncompressed/
                   - Name: suffix
                     Value: .babylon
   LambdaInvokePermission:
