@@ -1,6 +1,6 @@
 # Serving compressed WebGL websites using Amazon CloudFront, Amazon S3 and AWS Lambda
 
-[Read the post](https://aws.amazon.com/blogs/networking-and-content-delivery/serving-compressed-webgl-websites-using-amazon-cloudfront-amazon-s3-and-aws-lambda/) in [AWS Networking & Content Delivery blog.
+[Read the post](https://aws.amazon.com/blogs/networking-and-content-delivery/serving-compressed-webgl-websites-using-amazon-cloudfront-amazon-s3-and-aws-lambda/) in AWS Networking & Content Delivery blog.
 
 
 ## Security
