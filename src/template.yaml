@@ -121,6 +121,10 @@ Resources:
     Properties:
       AccessControl: 'Private'
       BucketName: !Ref S3BucketName
+      BucketEncryption: 
+        ServerSideEncryptionConfiguration: 
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256      
     Type: 'AWS::S3::Bucket'
   S3BucketPolicy:
     Metadata:
